@@ -73,9 +73,14 @@ async function fetchNugetInformationFromPackages(
   // begin collecting information from .nuget files on installed packages
   debug('Trying to analyze .nuspec files');
   for (const name of Object.keys(flattenedPackageList)) {
-    const dep = flattenedPackageList[name];
-    debug('...' + name);
-    nugetPackageInformation.push(await parseNuspec(dep, targetFramework));
+    try {
+      const dep = flattenedPackageList[name];
+      debug('...' + name);
+      const resolved = await parseNuspec(dep, targetFramework);
+      nugetPackageInformation.push(resolved);
+    } catch (e) {
+      console.error(e);
+    }
   }
   return nugetPackageInformation;
 }
