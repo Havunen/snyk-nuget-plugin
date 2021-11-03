@@ -3,6 +3,7 @@ import * as path from 'path';
 import { Dependency, cloneShallow, fromFolderName } from './dependency';
 import { parseNuspec } from './nuspec-parser';
 import * as debugModule from 'debug';
+
 const debug = debugModule('snyk');
 
 function injectPath(dep, packagesFolder) {
@@ -79,7 +80,8 @@ async function fetchNugetInformationFromPackages(
       const resolved = await parseNuspec(dep, targetFramework);
       nugetPackageInformation.push(resolved);
     } catch (e) {
-      console.error(e);
+      debug('Failed parsing nuspec file');
+      debug(e);
     }
   }
   return nugetPackageInformation;

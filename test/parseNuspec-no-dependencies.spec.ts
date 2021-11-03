@@ -1,14 +1,11 @@
-import { actuallyParsedNuspec, parseNuspec } from '../lib/nuget-parser/nuspec-parser';
+import { actuallyParsedNuspec } from '../lib/nuget-parser/nuspec-parser';
 
 import * as fs from 'fs';
 
 import * as plugin from '../lib/index';
-import * as JSZip from 'jszip';
-import * as path from 'path';
-const targetProjectJsonFile = './test/stubs/dummy_project_1/';
-const targetPackagesConfigFile = targetProjectJsonFile + 'dummy_project_1/packages.config';
-const alternatePackagesFolder = targetProjectJsonFile + 'alternate_packages';
-const targetJSONManifestData = JSON.parse(fs.readFileSync('./test/stubs/_2_project.json', 'utf-8'));
+
+
+JSON.parse(fs.readFileSync('./test/stubs/_2_project.json', 'utf-8'));
 
 const projects = {
   csproj: {
@@ -67,22 +64,61 @@ describe('parseNuSpec', () => {
     '<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">\n' +
     '</package>'
 
+  const nuspecWithMalformedTag = '<?xml version="1.0"?>\n' +
+    '<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">\n' +
+    '<metadata123>\n' +
+  '    <id>jQuery</id>\n' +
+  '    <version>3.2.1</version>\n' +
+  '    <title>jQuery</title>\n' +
+  '    <authors>jQuery Foundation, Inc.</authors>\n' +
+  '    <owners>jQuery Foundation, Inc.</owners>\n' +
+  '    <licenseUrl>http://jquery.org/license</licenseUrl>\n' +
+  '    <projectUrl>http://jquery.com/</projectUrl>\n' +
+  '    <requireLicenseAcceptance>false</requireLicenseAcceptance>\n' +
+  '    <description>jQuery is a new kind of JavaScript Library.\n' +
+  '        jQuery is a fast and concise JavaScript Library that simplifies HTML document traversing, event handling, animating, and Ajax interactions for rapid web development. jQuery is designed to change the way that you write JavaScript.\n' +
+  '        NOTE: This package is maintained on behalf of the library owners by the NuGet Community Packages project at http://nugetpackages.codeplex.com/</description>\n' +
+  '    <language>en-US</language>\n' +
+  '    <tags>jQuery</tags>\n' +
+  '  </metadata>\n' +
+    '</package>'
+
+  const nuspecWithNonArrayDependencies = '<?xml version="1.0"?>\n' +
+    '<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">\n' +
+    '  <metadata>\n' +
+    '    <id>jQuery</id>\n' +
+    '    <version>3.2.1</version>\n' +
+    '    <title>jQuery</title>\n' +
+    '    <authors>jQuery Foundation, Inc.</authors>\n' +
+    '    <dependencies>ABCD</dependencies>\n' +
+    '  </metadata>\n' +
+    '</package>'
+
   it('should not throw an error when there are no dependencies in the metadata', async () => {
     const parsedResult = await actuallyParsedNuspec(nuspecWithoutMetadataDependencies, {
       framework: 'net',
       version: '472'
     }, 'dependencyName')
-  expect(parsedResult).toBeDefined();
+    expect(parsedResult).toBeDefined();
     expect(parsedResult.children).toBeDefined();
     expect(parsedResult.name).toBeDefined();
 
   });
 
 
-  it('should not throw an error when there is no metadata', async () => {
+  it('should throw an error when there is no metadata', async () => {
     await expect(actuallyParsedNuspec(nuspecWithoutMetadata, {framework: 'net',
       version: '472'},'dependencyName')).rejects.toThrow();
+  });
 
+  it('should throw an error when the nuspec contains malformed XML', async () => {
+    await expect(actuallyParsedNuspec(nuspecWithMalformedTag, {framework: 'net',
+      version: '472'},'dependencyName')).rejects.toThrow();
+  });
+
+  it('should throw an error when the nuspec contains non-array dependencies tag', async () => {
+    await expect(actuallyParsedNuspec(nuspecWithNonArrayDependencies, {framework: 'net',
+      version: '472'},'dependencyName')).rejects.toThrow();
   });
 
 });

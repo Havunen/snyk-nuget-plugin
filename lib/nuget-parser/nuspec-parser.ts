@@ -15,7 +15,7 @@ async function loadNuspecFromAsync(dep) {
   );
 
   //just in case, does the code expect null to be returned on any error here?
-  if (fs.existsSync(nupkgPath) === false) return null;
+  if (!fs.existsSync(nupkgPath)) return null;
 
   const nupkgData = fs.readFileSync(nupkgPath);
   const nuspecZipData: any = await JSZip.loadAsync(nupkgData);
@@ -24,13 +24,17 @@ async function loadNuspecFromAsync(dep) {
     return path.extname(file) === '.nuspec';
   });
 
-  if (!nuspecFiles || !nuspecZipData) {
-    //sanity check, perhaps log a warning here?
+  if (!nuspecFiles) {
+    debug(`failed to read nupkg file from: ${nupkgPath}`);
     return null;
   }
 
-  const nuspecContent = await nuspecZipData.files[nuspecFiles[0]].async('text');
-  return nuspecContent;
+  if(!nuspecZipData){
+    debug(`failed to open nupkg file as an archive from: ${nupkgPath}`)
+    return null;
+  }
+
+  return await nuspecZipData.files[nuspecFiles[0]].async('text');
 }
 
 export async function actuallyParsedNuspec(
@@ -45,12 +49,33 @@ export async function actuallyParsedNuspec(
   // we have dependency version conflict resolution implemented
   if (!result.package?.metadata) {
     throw new Error(
-      'This is an invalid nuspec file. Metadata xml section is missing. This is a required element. See https://docs.microsoft.com/en-us/nuget/reference/nuspec',
+      'This is an invalid nuspec file. Package or Metadata xml section is missing. This is a required element. See https://docs.microsoft.com/en-us/nuget/reference/nuspec',
     );
   }
+
+  //just in case, this shoud not happen
+  if(!Array.isArray(result.package.metadata)){
+    throw new Error('This is an invalid nuspec file; the metadata tag is supposed to be a collection of objects but it is not!')
+  }
+
   result.package.metadata.forEach(metadata => {
-    if (metadata && metadata.dependencies) {
+
+    //just in case, this shouldn't happen
+    if(typeof metadata !== 'object'){
+      throw new Error('Expected elements in a "metadata" tag to be objects, but they were ' + typeof metadata + ', this is not supposed to happen and is likely due to malformed nuspec file.');
+    }
+
+    if (metadata?.dependencies) {
+      //just in case, proper nuspec wouldn't have this issue
+      if(!Array.isArray(metadata.dependencies)) {
+        throw new Error('Expected that "dependencies" tag would be an array but it isn\'t. This is not supposed to happen and is likely due to malformed nuspec file!');
+      }
       metadata.dependencies.forEach(rawDependency => {
+        //just in case, shouldn't happen
+        if (typeof rawDependency !== 'object'){
+          throw new Error('Unexpected dependency value. Expected it to be object but it was ' + (typeof rawDependency) + ', this is likely a malformed nuspec');
+        }
+
         // Find and add target framework version specific dependencies
         const depsForTargetFramework = extractDepsForTargetFramework(
           rawDependency,
