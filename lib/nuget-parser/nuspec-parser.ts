@@ -29,8 +29,8 @@ async function loadNuspecFromAsync(dep) {
     return null;
   }
 
-  if(!nuspecZipData){
-    debug(`failed to open nupkg file as an archive from: ${nupkgPath}`)
+  if (!nuspecZipData) {
+    debug(`failed to open nupkg file as an archive from: ${nupkgPath}`);
     return null;
   }
 
@@ -54,26 +54,37 @@ export async function actuallyParsedNuspec(
   }
 
   //just in case, this shoud not happen
-  if(!Array.isArray(result.package.metadata)){
-    throw new Error('This is an invalid nuspec file; the metadata tag is supposed to be a collection of objects but it is not!')
+  if (!Array.isArray(result.package.metadata)) {
+    throw new Error(
+      'This is an invalid nuspec file; the metadata tag is supposed to be a collection of objects but it is not!',
+    );
   }
 
   result.package.metadata.forEach(metadata => {
-
     //just in case, this shouldn't happen
-    if(typeof metadata !== 'object'){
-      throw new Error('Expected elements in a "metadata" tag to be objects, but they were ' + typeof metadata + ', this is not supposed to happen and is likely due to malformed nuspec file.');
+    if (typeof metadata !== 'object') {
+      throw new Error(
+        'Expected elements in a "metadata" tag to be objects, but they were ' +
+          typeof metadata +
+          ', this is not supposed to happen and is likely due to malformed nuspec file.',
+      );
     }
 
     if (metadata?.dependencies) {
       //just in case, proper nuspec wouldn't have this issue
-      if(!Array.isArray(metadata.dependencies)) {
-        throw new Error('Expected that "dependencies" tag would be an array but it isn\'t. This is not supposed to happen and is likely due to malformed nuspec file!');
+      if (!Array.isArray(metadata.dependencies)) {
+        throw new Error(
+          'Expected that "dependencies" tag would be an array but it isn\'t. This is not supposed to happen and is likely due to malformed nuspec file!',
+        );
       }
       metadata.dependencies.forEach(rawDependency => {
         //just in case, shouldn't happen
-        if (typeof rawDependency !== 'object'){
-          throw new Error('Unexpected dependency value. Expected it to be object but it was ' + (typeof rawDependency) + ', this is likely a malformed nuspec');
+        if (typeof rawDependency !== 'object') {
+          throw new Error(
+            'Unexpected dependency value. Expected it to be object but it was ' +
+              typeof rawDependency +
+              ', this is likely a malformed nuspec',
+          );
         }
 
         // Find and add target framework version specific dependencies
